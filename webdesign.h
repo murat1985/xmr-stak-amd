@@ -17,3 +17,7 @@ extern const char sHtmlConnectionBodyLow[];
 extern const char sHtmlResultBodyHigh[];
 extern const char sHtmlResultTableRow[];
 extern const char sHtmlResultBodyLow[];
+
+extern const char sPromCommonHeader[];
+extern const char sPromHashrateTableRow[];
+extern const char sPromHashrateBodyLow[];

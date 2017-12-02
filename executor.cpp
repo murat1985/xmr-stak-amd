@@ -468,6 +468,11 @@ void executor::ex_main()
 			http_report(ev.iName);
 			break;
 
+		case EV_PROM_ALL:
+			prom_report(ev.iName);
+			break;
+
+
 		case EV_HASHRATE_LOOP:
 			print_report(EV_USR_HASHRATE);
 			push_timed_event(ex_event(EV_HASHRATE_LOOP), jconf::inst()->GetAutohashTime());
@@ -490,6 +495,20 @@ inline const char* hps_format(double h, char* buf, size_t l)
 	}
 	else
 		return "  (na)";
+}
+
+inline const char* prom_format(double h, char* buf, size_t l)
+{
+	if(std::isnormal(h) || h == 0.0)
+	{
+		snprintf(buf, l, "%03.1f", h);
+		return buf;
+	}
+	else 
+  {
+		snprintf(buf, l, "%03.1f", 0.0);
+    return buf;
+  }
 }
 
 void executor::hashrate_report(std::string& out)
@@ -829,6 +848,47 @@ void executor::http_connection_report(std::string& out)
 	out.append(sHtmlConnectionBodyLow);
 }
 
+void executor::prom_all_report(std::string& out)
+{
+	char num_a[32], num_b[32], num_c[32], num_d[32];
+	char buffer[4096];
+	size_t nthd = pvThreads->size();
+
+	out.reserve(4096);
+
+	snprintf(buffer, sizeof(buffer), sPromCommonHeader, "# xmr-amd-stack exporter");
+	out.append(buffer);
+
+	double fTotal[3] = { 0.0, 0.0, 0.0};
+	for(size_t i=0; i < nthd; i++)
+	{
+		double fHps[3];
+
+		fHps[0] = telem->calc_telemetry_data(10000, i);
+		fHps[1] = telem->calc_telemetry_data(60000, i);
+		fHps[2] = telem->calc_telemetry_data(900000, i);
+
+		num_a[0] = num_b[0] = num_c[0] ='\0';
+		prom_format(fHps[0], num_a, sizeof(num_a));
+		prom_format(fHps[1], num_b, sizeof(num_b));
+		prom_format(fHps[2], num_c, sizeof(num_c));
+
+		fTotal[0] += fHps[0];
+		fTotal[1] += fHps[1];
+		fTotal[2] += fHps[2];
+
+		snprintf(buffer, sizeof(buffer), sPromHashrateTableRow, (unsigned int)i, num_a, (unsigned int)i, num_b, (unsigned int)i, num_c);
+		out.append(buffer);
+	}
+
+	num_a[0] = num_b[0] = num_c[0] = num_d[0] ='\0';
+	prom_format(fTotal[0], num_a, sizeof(num_a));
+	prom_format(fTotal[1], num_b, sizeof(num_b));
+	prom_format(fTotal[2], num_c, sizeof(num_c));
+
+	snprintf(buffer, sizeof(buffer), sPromHashrateBodyLow, num_a, num_b, num_c);
+	out.append(buffer);
+}
 void executor::http_report(ex_event_name ev)
 {
 	assert(pHttpString != nullptr);
@@ -853,6 +913,24 @@ void executor::http_report(ex_event_name ev)
 
 	httpReady.set_value();
 }
+// Prometheus exporter
+void executor::prom_report(ex_event_name ev)
+{
+	assert(pHttpString != nullptr);
+
+	switch(ev)
+	{
+	case EV_PROM_ALL:
+		prom_all_report(*pHttpString);
+		break;
+
+	default:
+		assert(false);
+		break;
+	}
+
+	httpReady.set_value();
+}
 
 void executor::get_http_report(ex_event_name ev_id, std::string& data)
 {
@@ -860,6 +938,23 @@ void executor::get_http_report(ex_event_name ev_id, std::string& data)
 
 	assert(pHttpString == nullptr);
 	assert(ev_id == EV_HTML_HASHRATE || ev_id == EV_HTML_RESULTS || ev_id == EV_HTML_CONNSTAT);
+
+	pHttpString = &data;
+	httpReady = std::promise<void>();
+	std::future<void> ready = httpReady.get_future();
+
+	push_event(ex_event(ev_id));
+
+	ready.wait();
+	pHttpString = nullptr;
+}
+// get prometheus report method
+void executor::get_prom_report(ex_event_name ev_id, std::string& data)
+{
+	std::lock_guard<std::mutex> lck(httpMutex);
+
+	assert(pHttpString == nullptr);
+	assert(ev_id == EV_PROM_ALL);
 
 	pHttpString = &data;
 	httpReady = std::promise<void>();

@@ -1,3 +1,40 @@
+### Fork purpose
+
+Quick and dirty additions to the xmr-stak-amd code in order to get some additional monitoring capabilities.
+
+A new http route got added into embeded http server `/metrics`. This route reports [Prometheus](https://prometheus.io) style metrics for GPU hashrate monitoring.
+There are two metrics at the moment:
+
+```
+xmr_stak_amd{thread_id="0",interval="10.0" } 730.1
+xmr_stak_amd{thread_id="0",interval="60.0" } 729.9
+xmr_stak_amd{thread_id="0",interval="900.0" } 729.8
+```
+
+and 
+
+```
+xmr_stak_amd_total{interval="10.0"} 7307.3
+xmr_stak_amd_total{interval="60.0"} 7307.3
+xmr_stak_amd_total{interval="900.0"} 7307.0
+```
+
+Which report per thread and total values respectively. 
+
+To get it working with prometheus just add this into prometheus.yml file:
+
+```
+  - job_name: 'xmr_stack'
+    static_configs:
+      - targets: ['192.168.1.2:40000', '192.168.1.3:40000']
+```
+
+Assuming `192.168.1.2` and `192.168.1.3` are ip addresses of your rigs and 40000 is a port number from `config.txt` of xmr-stak-amd miner.
+
+Screenshot of [Grafana](grafana.com) which that generated from prometheus metrics:
+
+![xmr-stak-amd prometheus monitoring](https://gist.githubusercontent.com/murat1985/cfb0767abff0412f8703102dbe019350/raw/effa59946124b3a7c4a7a6022a31de5070a2a6ef/xmr_grafana.png)
+
 ### XMR-Stak-AMD - Monero mining software
 
 XMR-Stak is a universal Stratum pool miner. This is the AMD GPU-mining version; there is also an [CPU version](https://github.com/fireice-uk/xmr-stak-cpu) and an [NVIDA GPU version](https://github.com/fireice-uk/xmr-stak-nvidia)

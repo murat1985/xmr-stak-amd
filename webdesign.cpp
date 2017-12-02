@@ -170,3 +170,15 @@ extern const char sHtmlResultTableRow [] =
 extern const char sHtmlResultBodyLow [] =
 	"</table></div></div></body></html>";
 
+extern const char sPromCommonHeader [] =
+	" %s \n";
+
+extern const char sPromHashrateTableRow [] =
+	"xmr_stak_amd{thread_id=\"%u\",interval=\"10.0\" } %s\n"
+	"xmr_stak_amd{thread_id=\"%u\",interval=\"60.0\" } %s\n"
+	"xmr_stak_amd{thread_id=\"%u\",interval=\"900.0\" } %s\n";
+
+extern const char sPromHashrateBodyLow [] =
+	"xmr_stak_amd_total{interval=\"10.0\"} %s\n"
+	"xmr_stak_amd_total{interval=\"60.0\"} %s\n"
+	"xmr_stak_amd_total{interval=\"900.0\"} %s\n";
